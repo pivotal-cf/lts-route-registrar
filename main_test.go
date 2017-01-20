@@ -213,8 +213,8 @@ routes:
 - name: My route
   port: 12345
   uris:
-  - uri: "uri-1"
-  - uri: "uri-2"
+  - "uri-1"
+  - "uri-2"
   tags:
     tag1: val1
     tag2: val2

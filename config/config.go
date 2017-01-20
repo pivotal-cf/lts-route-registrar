@@ -31,8 +31,28 @@ type ConfigSchema struct {
 }
 
 type URI struct {
-	URI string `yaml:"uri"`
-	IP  string `yaml:"ip"`
+	URI string
+	IP  string
+}
+
+func (u *URI) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var maybeHash struct {
+		URI string `yaml:"uri"`
+		IP  string `yaml:"ip"`
+	}
+	err := unmarshal(&maybeHash)
+	if err != nil {
+		var maybeString string
+		err := unmarshal(&maybeString)
+		if err != nil {
+			return err
+		}
+		u.URI = maybeString
+		return nil
+	}
+	u.URI = maybeHash.URI
+	u.IP = maybeHash.IP
+	return nil
 }
 
 type RouteSchema struct {

@@ -79,12 +79,28 @@ var _ = Describe("Config", func() {
 	})
 
 	Describe("NewConfigSchemaFromFile", func() {
-		It("returns a valid config", func() {
-			cfg_file := "../example_config/example.yml"
-			cfg, err := config.NewConfigSchemaFromFile(cfg_file)
+		Context("with URIs as strings", func() {
+			It("returns a valid config", func() {
+				cfg_file := "../example_config/example.yml"
+				cfg, err := config.NewConfigSchemaFromFile(cfg_file)
 
-			Expect(err).NotTo(HaveOccurred())
-			Expect(cfg).To(Equal(configSchema))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(cfg).To(Equal(configSchema))
+			})
+		})
+
+		Context("with URIs as hashes", func() {
+			BeforeEach(func() {
+				configSchema.Routes[0].URIs[0].IP = "169.254.169.254"
+			})
+			It("returns a valid config", func() {
+				cfg_file := "../example_config/example_with_hashes.yml"
+				cfg, err := config.NewConfigSchemaFromFile(cfg_file)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(cfg).To(Equal(configSchema))
+			})
+
 		})
 
 		Context("when the file does not exists", func() {
