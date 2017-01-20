@@ -78,9 +78,9 @@ var _ = Describe("Registrar.RegisterRoutes", func() {
 			{
 				Name: "my route 1",
 				Port: 8080,
-				URIs: []string{
-					"my uri 1.1",
-					"my uri 1.2",
+				URIs: []config.URI{
+					config.URI{URI: "my uri 1.1"},
+					config.URI{URI: "my uri 1.2"},
 				},
 				Tags: map[string]string{
 					"tag1.1": "value1.1",
@@ -91,9 +91,9 @@ var _ = Describe("Registrar.RegisterRoutes", func() {
 			{
 				Name: "my route 2",
 				Port: 8081,
-				URIs: []string{
-					"my uri 2.1",
-					"my uri 2.2",
+				URIs: []config.URI{
+					config.URI{URI: "my uri 2.1"},
+					config.URI{URI: "my uri 2.2"},
 				},
 				Tags: map[string]string{
 					"tag2.1": "value2.1",

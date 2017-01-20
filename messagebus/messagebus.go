@@ -89,9 +89,27 @@ func (m *msgBus) Connect(servers []config.MessageBusServer) error {
 
 func (m msgBus) SendMessage(subject string, host string, route config.Route, privateInstanceId string) error {
 	m.logger.Debug("creating-message", lager.Data{"subject": subject, "host": host, "route": route, "privateInstanceId": privateInstanceId})
-
+	uris := []string{}
+	for _, uri := range route.URIs {
+		if uri.IP != "" {
+			msg := &Message{
+				URIs:              []string{uri.URI},
+				Host:              uri.IP,
+				Port:              route.Port,
+				Tags:              route.Tags,
+				RouteServiceUrl:   route.RouteServiceUrl,
+				PrivateInstanceId: privateInstanceId,
+			}
+			err := m.publishMessage(subject, msg)
+			if err != nil {
+				return err
+			}
+		} else {
+			uris = append(uris, uri.URI)
+		}
+	}
 	msg := &Message{
-		URIs:              route.URIs,
+		URIs:              uris,
 		Host:              host,
 		Port:              route.Port,
 		Tags:              route.Tags,
@@ -99,15 +117,23 @@ func (m msgBus) SendMessage(subject string, host string, route config.Route, pri
 		PrivateInstanceId: privateInstanceId,
 	}
 
+	return m.publishMessage(subject, msg)
+}
+
+func (m msgBus) publishMessage(subject string, msg *Message) error {
 	json, err := json.Marshal(msg)
 	if err != nil {
 		// Untested as we cannot force json.Marshal to return error.
 		return err
 	}
-
 	m.logger.Debug("publishing-message", lager.Data{"msg": string(json)})
 
-	return m.natsConn.Publish(subject, json)
+	err = m.natsConn.Publish(subject, json)
+	if err != nil {
+		// Untested as we cannot force json.Marshal to return error.
+		return err
+	}
+	return nil
 }
 
 func (m msgBus) Close() {

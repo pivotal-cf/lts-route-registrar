@@ -61,13 +61,17 @@ var _ = Describe("Config", func() {
 					Name:                 routeName0,
 					Port:                 &port0,
 					RegistrationInterval: registrationInterval0String,
-					URIs:                 []string{"my-app.my-domain.com"},
+					URIs: []config.URI{
+						config.URI{URI: "my-app.my-domain.com"},
+					},
 				},
 				{
 					Name:                 routeName1,
 					Port:                 &port1,
 					RegistrationInterval: registrationInterval1String,
-					URIs:                 []string{"my-other-app.my-domain.com"},
+					URIs: []config.URI{
+						config.URI{URI: "my-other-app.my-domain.com"},
+					},
 				},
 			},
 			Host: "127.0.0.1",
@@ -239,6 +243,21 @@ var _ = Describe("Config", func() {
 					})
 				})
 			})
+
+			Context("IPs are provided in the routes", func() {
+				BeforeEach(func() {
+					configSchema.Routes[0].URIs[0].IP = "169.254.169.254"
+					configSchema.Routes[1].URIs[0].IP = "169.254.169.255"
+				})
+
+				It("includes the ips in the config", func() {
+					c, err := configSchema.ToConfig()
+					Expect(err).NotTo(HaveOccurred())
+
+					Expect(c.Routes[0].URIs[0].IP).To(Equal("169.254.169.254"))
+					Expect(c.Routes[1].URIs[0].IP).To(Equal("169.254.169.255"))
+				})
+			})
 		})
 	})
 
@@ -396,7 +415,7 @@ var _ = Describe("Config", func() {
 
 			Context("when the URIs are empty", func() {
 				BeforeEach(func() {
-					configSchema.Routes[0].URIs = []string{}
+					configSchema.Routes[0].URIs = []config.URI{}
 				})
 
 				It("returns an error", func() {
@@ -408,9 +427,13 @@ var _ = Describe("Config", func() {
 				})
 			})
 
-			Context("when the URIs contain empty strings", func() {
+			Context("when the URIs contain empty URIs", func() {
 				BeforeEach(func() {
-					configSchema.Routes[0].URIs = []string{"", "valid-uri", ""}
+					configSchema.Routes[0].URIs = []config.URI{
+						config.URI{URI: ""},
+						config.URI{URI: "valid-uri"},
+						config.URI{URI: ""},
+					}
 				})
 
 				It("returns an error", func() {
@@ -419,6 +442,24 @@ var _ = Describe("Config", func() {
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring(`error with 'route "route-0"'`))
 					Expect(err.Error()).To(ContainSubstring("* empty URIs"))
+				})
+
+				Context("when the IPs do not contain empty strings", func() {
+					BeforeEach(func() {
+						configSchema.Routes[0].URIs = []config.URI{
+							config.URI{URI: "", IP: "169.254.169.254"},
+							config.URI{URI: "valid-uri", IP: "169.254.169.254"},
+							config.URI{URI: "", IP: "169.254.169.254"},
+						}
+					})
+
+					It("returns an error", func() {
+						c, err := configSchema.ToConfig()
+						Expect(c).To(BeNil())
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(ContainSubstring(`error with 'route "route-0"'`))
+						Expect(err.Error()).To(ContainSubstring("* empty URIs"))
+					})
 				})
 			})
 		})

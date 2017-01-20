@@ -30,11 +30,16 @@ type ConfigSchema struct {
 	Host              string                   `yaml:"host"`
 }
 
+type URI struct {
+	URI string `yaml:"uri"`
+	IP  string `yaml:"ip"`
+}
+
 type RouteSchema struct {
 	Name                 string             `yaml:"name"`
 	Port                 *int               `yaml:"port"`
 	Tags                 map[string]string  `yaml:"tags"`
-	URIs                 []string           `yaml:"uris"`
+	URIs                 []URI              `yaml:"uris"`
 	RouteServiceUrl      string             `yaml:"route_service_url"`
 	RegistrationInterval string             `yaml:"registration_interval,omitempty"`
 	HealthCheck          *HealthCheckSchema `yaml:"health_check,omitempty"`
@@ -62,7 +67,7 @@ type Route struct {
 	Name                 string
 	Port                 int
 	Tags                 map[string]string
-	URIs                 []string
+	URIs                 []URI
 	RouteServiceUrl      string
 	RegistrationInterval time.Duration
 	HealthCheck          *HealthCheck
@@ -165,7 +170,7 @@ func routeFromSchema(r RouteSchema, index int) (*Route, error) {
 	}
 
 	for _, u := range r.URIs {
-		if u == "" {
+		if u.URI == "" {
 			errors.Add(fmt.Errorf("empty URIs"))
 			break
 		}

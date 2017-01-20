@@ -213,8 +213,8 @@ routes:
 - name: My route
   port: 12345
   uris:
-  - "uri-1"
-  - "uri-2"
+  - uri: "uri-1"
+  - uri: "uri-2"
   tags:
     tag1: val1
     tag2: val2
@@ -259,9 +259,12 @@ func initConfig() {
 
 	routes := []config.RouteSchema{
 		{
-			Name:                 "My route",
-			Port:                 &aPort,
-			URIs:                 []string{"uri-1", "uri-2"},
+			Name: "My route",
+			Port: &aPort,
+			URIs: []config.URI{
+				config.URI{URI: "uri-1"},
+				config.URI{URI: "uri-2"},
+			},
 			Tags:                 map[string]string{"tag1": "val1", "tag2": "val2"},
 			RegistrationInterval: registrationInterval,
 		},

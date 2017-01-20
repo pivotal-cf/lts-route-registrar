@@ -135,9 +135,12 @@ var _ = Describe("Messagebus test Suite", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			route = config.Route{
-				Name:            "some_name",
-				Port:            12345,
-				URIs:            []string{"uri1", "uri2"},
+				Name: "some_name",
+				Port: 12345,
+				URIs: []config.URI{
+					config.URI{URI: "uri1"},
+					config.URI{URI: "uri2"},
+				},
 				RouteServiceUrl: "https://rs.example.com",
 				Tags:            map[string]string{"tag1": "val1", "tag2": "val2"},
 			}
@@ -162,7 +165,7 @@ var _ = Describe("Messagebus test Suite", func() {
 			Eventually(registered).Should(Receive(&receivedMessage))
 
 			expectedRegistryMessage := messagebus.Message{
-				URIs:            route.URIs,
+				URIs:            []string{"uri1", "uri2"},
 				Host:            host,
 				Port:            route.Port,
 				RouteServiceUrl: route.RouteServiceUrl,
@@ -174,9 +177,94 @@ var _ = Describe("Messagebus test Suite", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			Expect(registryMessage.URIs).To(Equal(expectedRegistryMessage.URIs))
+			Expect(registryMessage.Host).To(Equal(expectedRegistryMessage.Host))
 			Expect(registryMessage.Port).To(Equal(expectedRegistryMessage.Port))
 			Expect(registryMessage.RouteServiceUrl).To(Equal(expectedRegistryMessage.RouteServiceUrl))
 			Expect(registryMessage.Tags).To(Equal(expectedRegistryMessage.Tags))
+		})
+
+		Context("some IP addresses are specified per URI and others are not", func() {
+			BeforeEach(func() {
+				route.URIs[0].IP = "1.1.1.1"
+			})
+
+			It("sends multiple messages", func() {
+				registered := make(chan string)
+				testSpyClient.Subscribe(topic, func(msg *nats.Msg) {
+					registered <- string(msg.Data)
+				})
+
+				// Wait for the nats library to register our callback.
+				// We use a sleep because there's no way to know that the callback was
+				// registered successfully (e.g. they don't provide a channel)
+				time.Sleep(20 * time.Millisecond)
+
+				err := messageBus.SendMessage(topic, host, route, privateInstanceId)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				// Assert that we got the right message
+				var receivedMessage string
+				Eventually(registered).Should(Receive(&receivedMessage))
+
+				var registryMessage messagebus.Message
+				err = json.Unmarshal([]byte(receivedMessage), &registryMessage)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				Expect(registryMessage.URIs).To(Equal([]string{route.URIs[0].URI}))
+				Expect(registryMessage.Host).To(Equal(route.URIs[0].IP))
+				Expect(registryMessage.Port).To(Equal(route.Port))
+				Expect(registryMessage.RouteServiceUrl).To(Equal(route.RouteServiceUrl))
+				Expect(registryMessage.Tags).To(Equal(route.Tags))
+
+				Eventually(registered).Should(Receive(&receivedMessage))
+
+				err = json.Unmarshal([]byte(receivedMessage), &registryMessage)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				Expect(registryMessage.URIs).To(Equal([]string{route.URIs[1].URI}))
+				Expect(registryMessage.Host).To(Equal(host))
+				Expect(registryMessage.Port).To(Equal(route.Port))
+				Expect(registryMessage.RouteServiceUrl).To(Equal(route.RouteServiceUrl))
+				Expect(registryMessage.Tags).To(Equal(route.Tags))
+			})
+		})
+
+		Context("when IP addresses are specified per URI", func() {
+			BeforeEach(func() {
+				route.URIs[0].IP = "1.1.1.1"
+				route.URIs[1].IP = "1.1.1.2"
+			})
+
+			It("sends multiple messages", func() {
+				registered := make(chan string)
+				testSpyClient.Subscribe(topic, func(msg *nats.Msg) {
+					registered <- string(msg.Data)
+				})
+
+				// Wait for the nats library to register our callback.
+				// We use a sleep because there's no way to know that the callback was
+				// registered successfully (e.g. they don't provide a channel)
+				time.Sleep(20 * time.Millisecond)
+
+				err := messageBus.SendMessage(topic, host, route, privateInstanceId)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				// Assert that we got the right message
+				for i := 0; i < 2; i++ {
+					var receivedMessage string
+					Eventually(registered).Should(Receive(&receivedMessage))
+
+					var registryMessage messagebus.Message
+					err = json.Unmarshal([]byte(receivedMessage), &registryMessage)
+					Expect(err).ShouldNot(HaveOccurred())
+
+					Expect(registryMessage.URIs).To(Equal([]string{route.URIs[i].URI}))
+					Expect(registryMessage.Host).To(Equal(route.URIs[i].IP))
+					Expect(registryMessage.Port).To(Equal(route.Port))
+					Expect(registryMessage.RouteServiceUrl).To(Equal(route.RouteServiceUrl))
+					Expect(registryMessage.Tags).To(Equal(route.Tags))
+				}
+			})
 		})
 
 		Context("when the connection is already closed", func() {

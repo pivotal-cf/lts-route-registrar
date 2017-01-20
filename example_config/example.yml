@@ -3,11 +3,13 @@ host: "127.0.0.1"
 routes:
 - name: "route-0"
   port: 3000
-  uris: ["my-app.my-domain.com"]
+  uris:
+    - uri: "my-app.my-domain.com"
   registration_interval: 20s
 - name: "route-1"
   port: 3001
-  uris: ["my-other-app.my-domain.com"]
+  uris:
+    - uri: "my-other-app.my-domain.com"
   registration_interval: 10s
 message_bus_servers:
 - host: "some-host"
