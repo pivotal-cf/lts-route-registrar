@@ -15,5 +15,6 @@ pushd "${PROJECT_DIR}" > /dev/null
     -failOnPending \
     -randomizeAllSpecs \
     -randomizeSuites \
+    --flakeAttempts=2 \
     "$@"
 popd > /dev/null
